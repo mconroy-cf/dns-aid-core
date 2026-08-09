@@ -57,6 +57,33 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   container that started and immediately exited. Both the `mcp` and `all` extras now
   require `mcp>=1.28.1,<2.0.0`. The ceiling will be raised once `dns_aid/mcp/server.py`
   and `dns_aid/sdk/protocols/mcp.py` are migrated to the 2.x API.
+- **`pip install dns-aid[all]` now installs everything it claims to.** The `all`
+  extra restated every requirement by hand and had drifted out of sync: it was
+  missing `cel-python` and `common-expression-language` (so `[all]` users got no
+  CEL policy engine), `pqcrypto` (no PQC/ML-DSA signing), and `requests`, which
+  arrived only transitively via `edgegrid-python` at an unconstrained version,
+  silently dropping the `>=2.33.0` floor that the `cloud-dns` and
+  `akamai-edgedns` extras declare. `all` is now defined by PEP 508
+  self-reference — `dns-aid[cli,mcp,route53,...]` — so a dependency added to any
+  extra is inherited automatically and each version floor is declared in exactly
+  one place. Every user-facing extra is listed, including ones that are
+  currently empty, so they stay covered once they gain dependencies.
+  ([#236](https://github.com/dns-aid/dns-aid-core/issues/236))
+- **`dns-aid[all]` no longer installs the development toolchain.** The previous
+  hand-written `all` leaked `pytest`, `mypy`, `ruff` and `boto3-stubs` into a
+  published, user-facing extra. `all` now aggregates the runtime extras only,
+  which drops 39 packages from a fresh `[all]` install (114 → 75), including
+  `cyclonedx-bom` and its SBOM/JSON-schema/URI-validation tree. Install
+  `dns-aid[dev]` alongside it for the toolchain — `CONTRIBUTING.md`'s documented
+  setup is unaffected. The CVE floors that `dev` previously carried for `[all]`
+  (`urllib3>=2.7.0`, `pygments>=2.20.0`) now sit on the runtime extras that
+  actually pull those packages, so `[all]` keeps them; `lxml`'s floor stays in
+  `dev`, which is the only place `cyclonedx-bom` is pulled from.
+
+  `tests/unit/test_packaging.py` guards four drift modes: a bare requirement
+  restated in `all`, an extra `all` fails to reference, a name in `all` that is
+  not a real extra (uv silently ignores these), and the same package declared
+  with different version specifiers in two places.
 
 ## [0.28.0] - 2026-08-08
 
