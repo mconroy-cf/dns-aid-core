@@ -54,7 +54,20 @@ cli = [
     "rich>=13.0.0",
 ]
 mcp = [
-    "mcp>=1.28.1",
+    # Upper-bounded on the SDK client path, not the server. dns_aid.mcp.server
+    # runs on both majors (see the dual-path import there), but
+    # dns_aid.sdk.protocols.mcp does not: mcp 2.x renamed mcp.types' camelCase
+    # result fields to snake_case, so CallToolResult.isError/.structuredContent,
+    # ListToolsResult.nextCursor and Tool.inputSchema all raise AttributeError
+    # there. The classes still import, which makes this easy to miss. The
+    # streamable-HTTP transport also changed shape (renamed, new argument set,
+    # yields TransportStreams instead of a 3-tuple).
+    #
+    # Not a reason: the transport's `http_client` is annotated
+    # httpx2.AsyncClient, but httpx2 and httpx expose identical AsyncClient
+    # constructor parameters and an httpx client is accepted, so no HTTP-layer
+    # port is needed. Raise this ceiling once the field-rename shim lands.
+    "mcp>=1.28.1,<2.0.0",
     "uvicorn>=0.30.0",
     # Direct floors on transitive deps pulled by `mcp` to close Dependabot alerts
     # (mcp's upstream constraints are looser than the patched versions need).
@@ -139,8 +152,8 @@ all = [
     # CLI
     "typer>=0.12.0",
     "rich>=13.0.0",
-    # MCP
-    "mcp>=1.28.1",
+    # MCP (see the ceiling rationale in the `mcp` extra above)
+    "mcp>=1.28.1,<2.0.0",
     "uvicorn>=0.30.0",
     # Transitive floors via mcp (Dependabot)
     "pyjwt>=2.13.0",
